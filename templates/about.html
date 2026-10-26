@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    
+    <!-- Header -->
+    <div class="text-center mb-5">
+      <div class="d-inline-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-primary px-3 py-1">Computer Science &amp; Engineering</span>
+        <span class="badge bg-light text-dark border px-3 py-1">Computer Networks Project</span>
+      </div>
+      <h1 class="display-6 fw-bold text-navy mb-2">DNS Query and Analysis Tool</h1>
+      <p class="text-muted lead max-w-700 mx-auto">
+        A comprehensive Python Flask networking platform for DNS record resolution, latency benchmarking, database telemetry, Matplotlib visual analytics, and Wireshark packet capture dissection.
+      </p>
+    </div>
+
+    <!-- Section 1: Introduction & Problem Statement -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-file-earmark-text text-primary me-2"></i> 1. Introduction &amp; Problem Statement</span>
+      </div>
+      <div class="card-custom-body">
+        <h5 class="fw-bold text-navy">1.1 Introduction</h5>
+        <p class="text-muted">
+          The Domain Name System (DNS) is one of the most fundamental infrastructure pillars of the global Internet. It operates as the distributed, hierarchical directory translating human-memorable domain names (e.g., <code>google.com</code>) into machine-routable Internet Protocol addresses (IPv4 and IPv6). Understanding DNS behaviors, measuring server response latency, resolving multiple resource records, and inspecting lower-level network packets are core competencies in Computer Networks, Cybersecurity, and Cloud Systems.
+        </p>
+
+        <h5 class="fw-bold text-navy mt-4">1.2 Problem Statement</h5>
+        <p class="text-muted mb-0">
+          Command-line utilities such as <code>nslookup</code>, <code>dig</code>, and <code>host</code> provide basic DNS lookup capabilities, but they lack automated latency telemetry tracking, multi-domain comparative benchmarking, persistent historical aggregation, graphical analytics, and integrated packet capture dissection in a centralized, intuitive interface. Students and network administrators frequently need to toggle between terminal commands, database tools, and external packet sniffers. This project bridges that gap by creating an integrated web-based diagnostic suite built entirely in Python.
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 2: Objectives & Scope -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-bullseye text-primary me-2"></i> 2. Project Objectives &amp; Scope</span>
+      </div>
+      <div class="card-custom-body">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h5 class="fw-bold text-navy mb-3"><i class="bi bi-check2-circle text-success me-1"></i> Core Objectives</h5>
+            <ul class="text-muted small ps-3">
+              <li class="mb-2"><strong>Standard Record Resolution:</strong> Resolve authoritative A (IPv4), AAAA (IPv6), CNAME (Aliases), and MX (Mail Exchange with priority) records using RFC-compliant dnspython.</li>
+              <li class="mb-2"><strong>High-Precision Telemetry:</strong> Measure query round-trip time (RTT) down to fractional milliseconds using Python's <code>time.perf_counter()</code>.</li>
+              <li class="mb-2"><strong>Multi-Domain Benchmarking:</strong> Simultaneously evaluate up to 10 domains to calculate minimum, maximum, and average response times and identify relative performance bottlenecks.</li>
+              <li class="mb-2"><strong>Persistent Database Auditing:</strong> Log all queries, statuses (SUCCESS, NODATA, NXDOMAIN, TIMEOUT, ERROR), answers, and resolvers in an indexed SQLite database.</li>
+              <li class="mb-2"><strong>Server-Side Visual Analytics:</strong> Generate high-resolution statistical charts via Matplotlib directly on the Flask backend without JavaScript chart dependencies.</li>
+              <li><strong>Packet Inspection:</strong> Parse and dissect binary Wireshark capture files (.pcap/.pcapng) to display lower-level IP headers, ports, transaction IDs, opcodes, and DNS flags.</li>
+            </ul>
+          </div>
+
+          <div class="col-md-6">
+            <h5 class="fw-bold text-navy mb-3"><i class="bi bi-compass text-info me-1"></i> Project Scope</h5>
+            <ul class="text-muted small ps-3">
+              <li class="mb-2"><strong>Target Audience:</strong> Computer Science Engineering students, networking educators, systems administrators, and cybersecurity analysts.</li>
+              <li class="mb-2"><strong>Operational Environment:</strong> Runs cross-platform on Windows 10/11, macOS, and Linux in VS Code with Python 3.</li>
+              <li class="mb-2"><strong>Protocol Coverage:</strong> Standard authoritative and recursive DNS over UDP/TCP port 53.</li>
+              <li class="mb-2"><strong>Export Formats:</strong> Seamless data extraction via RFC-compliant CSV and structured JSON formats.</li>
+              <li><strong>Zero Frontend Framework Dependencies:</strong> Built purely with HTML5, CSS3, and server-rendered Flask Jinja2 templates.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Technology Stack & System Architecture -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-layers text-primary me-2"></i> 3. Technology Stack &amp; Architecture</span>
+      </div>
+      <div class="card-custom-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-custom">
+            <thead>
+              <tr>
+                <th>Component / Layer</th>
+                <th>Technology</th>
+                <th>Purpose in Project</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="fw-bold">Backend Language</td>
+                <td>Python 3</td>
+                <td>Core execution engine, timing measurements, and business logic.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">Web Framework</td>
+                <td>Flask (WSGI)</td>
+                <td>Routing, request dispatching, session handling, POST-Redirect-GET pattern.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">Template Engine</td>
+                <td>Jinja2</td>
+                <td>Server-side HTML rendering, template inheritance, dynamic UI updates.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">DNS Query Engine</td>
+                <td>dnspython</td>
+                <td>Constructs raw DNS question packets, parses response RRsets, handles timeouts.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">Database Store</td>
+                <td>SQLite 3</td>
+                <td>Persistent transactional query history, indexing, metric aggregation.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">Visualization Engine</td>
+                <td>Matplotlib (Agg)</td>
+                <td>Generates headless high-DPI latency charts, line graphs, and donut charts.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">Packet Analyzer</td>
+                <td>Scapy &amp; Binary Streamer</td>
+                <td>Inspects Wireshark PCAP/PCAPNG captures, decodes DNS header bits and RCODEs.</td>
+              </tr>
+              <tr>
+                <td class="fw-bold">Frontend Presentation</td>
+                <td>Bootstrap 5 + Custom CSS</td>
+                <td>Responsive layout, cybersecurity navy/cyan theme, accessible cards and tables.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: System Requirements -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-gear text-primary me-2"></i> 4. System Requirements</span>
+      </div>
+      <div class="card-custom-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h6 class="fw-bold text-navy mb-2"><i class="bi bi-hdd-rack me-1"></i> Hardware Requirements</h6>
+            <ul class="text-muted small ps-3 mb-0">
+              <li><strong>Processor:</strong> Dual-Core Intel/AMD x86_64 or ARM64 processor (1.5 GHz or higher).</li>
+              <li><strong>Memory (RAM):</strong> 2 GB minimum (4 GB recommended for large packet captures).</li>
+              <li><strong>Storage:</strong> 250 MB free disk space for Python runtime, dependencies, and database.</li>
+              <li><strong>Network Interface:</strong> Active Internet connection (Ethernet or Wi-Fi) with UDP port 53 outbound access.</li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-bold text-navy mb-2"><i class="bi bi-window-desktop me-1"></i> Software Requirements</h6>
+            <ul class="text-muted small ps-3 mb-0">
+              <li><strong>Operating System:</strong> Windows 10/11, macOS 12+, or Ubuntu/Debian Linux.</li>
+              <li><strong>Development Environment:</strong> Visual Studio Code (VS Code) with Python extension.</li>
+              <li><strong>Runtime:</strong> Python 3.9 through Python 3.15.</li>
+              <li><strong>Web Browser:</strong> Any modern standards-compliant browser (Chrome, Edge, Firefox, Safari).</li>
+              <li><strong>Optional:</strong> Wireshark Desktop GUI for capturing live network packets.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Advantages & Limitations -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-sliders text-primary me-2"></i> 5. Advantages &amp; Limitations</span>
+      </div>
+      <div class="card-custom-body">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h6 class="fw-bold text-success mb-2"><i class="bi bi-plus-circle me-1"></i> Key Advantages</h6>
+            <ul class="text-muted small ps-3 mb-0">
+              <li class="mb-2"><strong>Zero JavaScript Framework Overhead:</strong> Fast page loads, maximum security, and full accessibility without heavy single-page application frameworks.</li>
+              <li class="mb-2"><strong>Accurate Real-World Telemetry:</strong> All statistics come from actual socket queries; no simulated or fake numbers.</li>
+              <li class="mb-2"><strong>Safe POST-Redirect-GET Pattern:</strong> Prevents duplicate query triggers when users refresh result pages.</li>
+              <li class="mb-2"><strong>Portable &amp; Self-Contained:</strong> SQLite database is zero-configuration and runs directly from local workspace files.</li>
+              <li><strong>Embedded Demo Generator:</strong> Out-of-the-box sample PCAP generator allows immediate testing even without Wireshark installed.</li>
+            </ul>
+          </div>
+
+          <div class="col-md-6">
+            <h6 class="fw-bold text-danger mb-2"><i class="bi bi-dash-circle me-1"></i> Technical Limitations</h6>
+            <ul class="text-muted small ps-3 mb-0">
+              <li class="mb-2"><strong>Encrypted DNS Invisibility:</strong> Standard packet capture cannot inspect DNS-over-HTTPS (DoH) or DNS-over-TLS (DoT) payloads without private session key extraction.</li>
+              <li class="mb-2"><strong>Local Network Firewall Filtering:</strong> Corporate firewalls or captive portals that intercept port 53 may influence recorded response latency.</li>
+              <li class="mb-2"><strong>Query Rate Limits:</strong> Public nameservers (such as Google 8.8.8.8) enforce rate limiting against rapid automated query bursts.</li>
+              <li><strong>In-Memory Capture Processing:</strong> Very large packet captures (>50 MB) require significant RAM for dissection.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 6: Future Enhancements & Conclusion -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-rocket-takeoff text-primary me-2"></i> 6. Future Enhancements &amp; Conclusion</span>
+      </div>
+      <div class="card-custom-body">
+        <h6 class="fw-bold text-navy mb-2">6.1 Future Enhancements</h6>
+        <div class="row g-2 mb-4 text-muted small">
+          <div class="col-md-4">
+            <div class="p-2 border rounded bg-light">
+              <strong>DNSSEC Validation:</strong> Verification of cryptographic RRSIG and DNSKEY signatures for anti-tamper validation.
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-2 border rounded bg-light">
+              <strong>Geo-IP Mapping:</strong> Integration with MaxMind GeoLite2 to display geographic locations of resolved IP endpoints.
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-2 border rounded bg-light">
+              <strong>DoH / DoT Clients:</strong> Built-in resolution capabilities over encrypted HTTPS and TLS channels.
+            </div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold text-navy mb-2">6.2 Conclusion</h6>
+        <p class="text-muted mb-0">
+          The <strong>DNS Query and Analysis Tool</strong> successfully demonstrates the practical implementation of core networking concepts in Python. By uniting domain resolution, latency telemetry, comparative benchmarking, persistent relational storage, automated Matplotlib chart generation, and packet dissection into a cohesive web dashboard, this project serves as an ideal capstone deliverable for Computer Science Engineering students and instructors.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

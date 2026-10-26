@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 mb-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h2 class="h4 fw-bold text-navy mb-1"><i class="bi bi-arrow-left-right text-primary me-2"></i> Multiple-Domain DNS Comparison</h2>
+        <p class="text-muted small mb-0">Evaluate and benchmark authoritative DNS resolution latency, IP addresses, and reliability across multiple domains simultaneously.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Comparison Input Card -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-header">
+    <span><i class="bi bi-input-cursor-text me-2 text-primary"></i> Benchmark Configuration</span>
+    <span class="badge bg-light text-muted border">Limit: Up to 10 Domains</span>
+  </div>
+  
+  <div class="card-custom-body">
+    <form action="{{ url_for('compare') }}" method="POST" id="compareForm">
+      
+      <div class="row g-3">
+        <!-- Domains Textarea -->
+        <div class="col-lg-6">
+          <label for="domainsTextarea" class="form-label fw-bold">Domains to Compare (One per line) <span class="text-danger">*</span></label>
+          <textarea class="form-control form-control-custom font-monospace" id="domainsTextarea" name="domains" rows="6" placeholder="google.com&#10;github.com&#10;wikipedia.org&#10;cloudflare.com&#10;microsoft.com" required>{{ domains_text }}</textarea>
+          <div class="form-text">Enter up to 10 domain hostnames. Example list: google.com, github.com, wikipedia.org.</div>
+        </div>
+
+        <!-- Options: Record Types & Resolver -->
+        <div class="col-lg-6 d-flex flex-column justify-content-between">
+          <div>
+            <label class="form-label fw-bold">Select Record Types</label>
+            <div class="d-flex flex-wrap gap-3 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="record_types" value="A" id="cmpA" {% if 'A' in selected_types %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="cmpA">A (IPv4)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="record_types" value="AAAA" id="cmpAAAA" {% if 'AAAA' in selected_types %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="cmpAAAA">AAAA (IPv6)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="record_types" value="CNAME" id="cmpCNAME" {% if 'CNAME' in selected_types %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="cmpCNAME">CNAME</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="record_types" value="MX" id="cmpMX" {% if 'MX' in selected_types %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="cmpMX">MX</label>
+              </div>
+            </div>
+
+            <label for="cmpResolver" class="form-label fw-bold">Upstream Nameserver</label>
+            <select class="form-select form-control-custom mb-3" id="cmpResolver" name="resolver">
+              <option value="System Default">Operating System Default</option>
+              <option value="8.8.8.8">Google DNS (8.8.8.8)</option>
+              <option value="1.1.1.1">Cloudflare DNS (1.1.1.1)</option>
+              <option value="9.9.9.9">Quad9 DNS (9.9.9.9)</option>
+            </select>
+          </div>
+
+          <div>
+            <button type="submit" class="btn btn-primary-custom w-100 py-2" id="startComparisonBtn">
+              <i class="bi bi-play-circle me-1"></i> Start Comparative Benchmark
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% if comparison %}
+  <!-- Benchmark Performance Highlights -->
+  <div class="row g-3 mb-4">
+    <!-- Fastest Domain -->
+    <div class="col-md-3">
+      <div class="stat-card stat-success">
+        <div class="stat-icon text-success">
+          <i class="bi bi-lightning-charge"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value text-success fs-5 text-truncate" title="{{ comparison.fastest_domain.domain if comparison.fastest_domain else 'N/A' }}">
+            {{ comparison.fastest_domain.domain if comparison.fastest_domain else "N/A" }}
+          </div>
+          <div class="stat-label">Fastest (Avg: {{ comparison.fastest_domain.avg_time if comparison.fastest_domain else 0 }} ms)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slowest Domain -->
+    <div class="col-md-3">
+      <div class="stat-card stat-danger">
+        <div class="stat-icon text-danger">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value text-danger fs-5 text-truncate" title="{{ comparison.slowest_domain.domain if comparison.slowest_domain else 'N/A' }}">
+            {{ comparison.slowest_domain.domain if comparison.slowest_domain else "N/A" }}
+          </div>
+          <div class="stat-label">Slowest (Avg: {{ comparison.slowest_domain.avg_time if comparison.slowest_domain else 0 }} ms)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall Average Latency -->
+    <div class="col-md-3">
+      <div class="stat-card stat-cyan">
+        <div class="stat-icon text-info">
+          <i class="bi bi-calculator"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ comparison.overall_avg }} <span class="fs-6 text-muted">ms</span></div>
+          <div class="stat-label">Overall Avg Latency</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Min / Max Range -->
+    <div class="col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon text-secondary">
+          <i class="bi bi-arrows-expand"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value fs-5">{{ comparison.overall_min }} - {{ comparison.overall_max }} <span class="fs-6 text-muted">ms</span></div>
+          <div class="stat-label">Latency Range (Min-Max)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison Visual Chart -->
+  <div class="card card-custom mb-4">
+    <div class="card-custom-header">
+      <span><i class="bi bi-bar-chart-steps me-2 text-primary"></i> Comparative Latency Graph (Matplotlib)</span>
+      <span class="badge bg-light text-muted border">Generated in Python</span>
+    </div>
+    <div class="card-custom-body text-center">
+      <div class="chart-container">
+        <img src="{{ url_for('static', filename='generated/domain_comparison.png') }}?v={{ graph_version }}" alt="Domain Comparison Chart" class="img-fluid" id="comparisonGraphImg">
+      </div>
+    </div>
+  </div>
+
+  <!-- Domain Summary Table -->
+  <div class="card card-custom mb-4">
+    <div class="card-custom-header">
+      <span><i class="bi bi-table me-2 text-primary"></i> Domain Aggregated Statistics</span>
+    </div>
+    <div class="card-custom-body p-0">
+      <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0" id="domainSummaryTable">
+          <thead>
+            <tr>
+              <th scope="col">Domain</th>
+              <th scope="col">Min Latency</th>
+              <th scope="col">Max Latency</th>
+              <th scope="col">Average Latency</th>
+              <th scope="col">Successful</th>
+              <th scope="col">Failed / NODATA</th>
+              <th scope="col">Relative Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in comparison.domain_summaries %}
+              <tr>
+                <td class="fw-bold text-navy">{{ s.domain }}</td>
+                <td><span class="badge bg-light text-dark border">{{ s.min_time }} ms</span></td>
+                <td><span class="badge bg-light text-dark border">{{ s.max_time }} ms</span></td>
+                <td class="fw-bold text-primary">{{ s.avg_time }} ms</td>
+                <td><span class="text-success fw-semibold"><i class="bi bi-check2"></i> {{ s.success_count }}</span></td>
+                <td><span class="text-danger fw-semibold"><i class="bi bi-x"></i> {{ s.failed_count }}</span></td>
+                <td>
+                  {% if comparison.fastest_domain and s.domain == comparison.fastest_domain.domain %}
+                    <span class="badge bg-success"><i class="bi bi-trophy"></i> Fastest Domain</span>
+                  {% elif comparison.slowest_domain and s.domain == comparison.slowest_domain.domain and comparison.domain_summaries|length > 1 %}
+                    <span class="badge bg-danger"><i class="bi bi-hourglass-bottom"></i> Slowest Domain</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Nominal</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Query Results Breakdown Table -->
+  <div class="card card-custom mb-4">
+    <div class="card-custom-header">
+      <span><i class="bi bi-list-check me-2 text-primary"></i> Detailed Records by Domain and Type</span>
+    </div>
+    <div class="card-custom-body p-0">
+      <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0" id="detailedComparisonTable">
+          <thead>
+            <tr>
+              <th scope="col">Domain</th>
+              <th scope="col">Record</th>
+              <th scope="col">DNS Answers</th>
+              <th scope="col">Latency</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in comparison.results %}
+              <tr>
+                <td class="fw-bold font-monospace">{{ r.domain }}</td>
+                <td><span class="badge-record-type">{{ r.record_type }}</span></td>
+                <td class="font-monospace small">
+                  {{ r.answers_text }}
+                </td>
+                <td class="fw-semibold">{{ r.response_time_ms }} ms</td>
+                <td>
+                  {% if r.status == 'SUCCESS' %}
+                    <span class="badge-status badge-status-success"><i class="bi bi-check-circle-fill"></i> Success</span>
+                  {% elif r.status == 'NO_ANSWER' %}
+                    <span class="badge-status badge-status-noanswer"><i class="bi bi-info-circle-fill"></i> No Records</span>
+                  {% elif r.status == 'NXDOMAIN' %}
+                    <span class="badge-status badge-status-nxdomain"><i class="bi bi-question-circle-fill"></i> NXDOMAIN</span>
+                  {% else %}
+                    <span class="badge-status badge-status-error"><i class="bi bi-exclamation-triangle-fill"></i> Error</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Results Header -->
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill"></i> Completed</span>
+      <span class="text-muted small">Batch ID: <code>{{ batch_id }}</code></span>
+    </div>
+    <h2 class="h4 fw-bold text-navy mb-0">Query Results for: <span class="text-primary">{{ domain_name }}</span></h2>
+    <div class="small text-muted mt-1">
+      Resolved via <strong>{{ resolver_used }}</strong> &bull; Total records queried: <strong>{{ total_count }}</strong>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('dns_query') }}" class="btn btn-outline-primary btn-sm" id="newQueryBtn">
+      <i class="bi bi-search me-1"></i> New Query
+    </a>
+    <a href="{{ url_for('compare') }}" class="btn btn-outline-secondary btn-sm" id="compareBtn">
+      <i class="bi bi-arrow-left-right me-1"></i> Compare Domains
+    </a>
+    <a href="{{ url_for('export_csv') }}" class="btn btn-outline-success btn-sm" id="exportResultsCsvBtn">
+      <i class="bi bi-filetype-csv me-1"></i> Export CSV
+    </a>
+  </div>
+</div>
+
+<!-- Performance Metrics Summary Row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="stat-card">
+      <div class="stat-icon text-primary">
+        <i class="bi bi-stopwatch"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value">{{ avg_time }} <span class="fs-6 text-muted">ms</span></div>
+        <div class="stat-label">Batch Avg Latency</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-4">
+    <div class="stat-card stat-success">
+      <div class="stat-icon text-success">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value text-success">{{ success_count }} / {{ total_count }}</div>
+        <div class="stat-label">Successful Records</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-4">
+    <div class="stat-card">
+      <div class="stat-icon text-info">
+        <i class="bi bi-hdd-network"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value fs-4 text-truncate" title="{{ resolver_used }}">{{ resolver_used.split(' ')[0] }}</div>
+        <div class="stat-label">DNS Resolver</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DNS Records Table -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-table text-primary"></i>
+      <span>Authoritative DNS Answers</span>
+    </div>
+    <span class="badge bg-light text-muted border">Persistent in SQLite</span>
+  </div>
+
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table table-custom align-middle mb-0" id="resultsTable">
+        <thead>
+          <tr>
+            <th scope="col">Domain Name</th>
+            <th scope="col">Record Type</th>
+            <th scope="col">DNS Answer</th>
+            <th scope="col">MX Priority</th>
+            <th scope="col">Response Time</th>
+            <th scope="col">Query Status</th>
+            <th scope="col">Timestamp</th>
+            <th scope="col" class="text-end">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+            <tr>
+              <td class="fw-bold font-monospace">{{ r.domain }}</td>
+              <td>
+                <span class="badge-record-type">{{ r.record_type }}</span>
+              </td>
+              <td>
+                {% if r.status == 'SUCCESS' %}
+                  <div class="font-monospace small text-primary fw-semibold">
+                    {{ r.answers }}
+                  </div>
+                {% elif r.status == 'NO_ANSWER' %}
+                  <span class="text-muted small fst-italic">
+                    <i class="bi bi-info-circle me-1"></i> No {{ r.record_type }} records published for domain.
+                  </span>
+                {% elif r.status == 'NXDOMAIN' %}
+                  <span class="text-danger small fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Domain does not exist (NXDOMAIN)
+                  </span>
+                {% elif r.status == 'TIMEOUT' %}
+                  <span class="text-danger small fw-semibold">
+                    <i class="bi bi-clock-history me-1"></i> Query timed out
+                  </span>
+                {% else %}
+                  <span class="text-danger small">
+                    <i class="bi bi-exclamation-triangle me-1"></i> {{ r.error_message if r.error_message else "Resolution error" }}
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.record_type == 'MX' and r.mx_priority %}
+                  <span class="badge bg-light text-dark border font-monospace">{{ r.mx_priority }}</span>
+                {% else %}
+                  <span class="text-muted small">&mdash;</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="fw-bold">{{ r.response_time_ms }} ms</span>
+              </td>
+              <td>
+                {% if r.status == 'SUCCESS' %}
+                  <span class="badge-status badge-status-success"><i class="bi bi-check-circle-fill"></i> Success</span>
+                {% elif r.status == 'NO_ANSWER' %}
+                  <span class="badge-status badge-status-noanswer"><i class="bi bi-info-circle-fill"></i> No Records</span>
+                {% elif r.status == 'NXDOMAIN' %}
+                  <span class="badge-status badge-status-nxdomain"><i class="bi bi-question-circle-fill"></i> NXDOMAIN</span>
+                {% elif r.status == 'TIMEOUT' %}
+                  <span class="badge-status badge-status-timeout"><i class="bi bi-hourglass-bottom"></i> Timeout</span>
+                {% else %}
+                  <span class="badge-status badge-status-error"><i class="bi bi-exclamation-triangle-fill"></i> Error</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="text-muted small">{{ r.created_at }}</span>
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('query_details', query_id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="View Full Query Details">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Technical Explanation Card -->
+<div class="card card-custom">
+  <div class="card-custom-header">
+    <span><i class="bi bi-lightbulb me-2 text-warning"></i> Technical Interpretation &amp; DNS Semantics</span>
+  </div>
+  <div class="card-custom-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <h6 class="fw-bold text-navy mb-1"><i class="bi bi-check-circle text-success me-1"></i> Resolution Latency</h6>
+        <p class="small text-muted mb-0">
+          Latency represents the exact network round-trip time (RTT) measured using Python's <code>time.perf_counter()</code> between sending the UDP query to the nameserver and receiving the response packet.
+        </p>
+      </div>
+
+      <div class="col-md-4">
+        <h6 class="fw-bold text-navy mb-1"><i class="bi bi-info-circle text-primary me-1"></i> NODATA vs. NXDOMAIN</h6>
+        <p class="small text-muted mb-0">
+          <strong>NODATA / No Records</strong> indicates the domain exists and is active, but lacks that specific record type. In contrast, <strong>NXDOMAIN</strong> means the domain name is completely unregistered or absent from the DNS hierarchy.
+        </p>
+      </div>
+
+      <div class="col-md-4">
+        <h6 class="fw-bold text-navy mb-1"><i class="bi bi-envelope text-info me-1"></i> MX Priority Mechanics</h6>
+        <p class="small text-muted mb-0">
+          The MX priority integer dictates sending preference. Connecting mail transfer agents (MTAs) attempt delivery to the lowest numeric value first before failing over to backup mail relays.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

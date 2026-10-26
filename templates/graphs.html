@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+  <div>
+    <h2 class="h4 fw-bold text-navy mb-1"><i class="bi bi-bar-chart-line text-primary me-2"></i> Python Matplotlib Visual Analytics</h2>
+    <p class="text-muted small mb-0">Server-rendered high-resolution visualizations generated directly by Python's Matplotlib engine from SQLite query telemetry.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('graphs') }}" class="btn btn-sm btn-outline-primary" id="refreshChartsBtn">
+      <i class="bi bi-arrow-clockwise me-1"></i> Refresh Charts
+    </a>
+  </div>
+</div>
+
+<!-- Architecture Notice -->
+<div class="alert alert-info border-info-subtle shadow-sm mb-4">
+  <div class="d-flex">
+    <i class="bi bi-info-circle-fill fs-5 me-3 text-info"></i>
+    <div>
+      <div class="fw-bold">Python Matplotlib Architecture Note:</div>
+      <div class="small">
+        In accordance with project requirements, all charts on this page are compiled in Python using <code>matplotlib.pyplot</code> with the headless <code>Agg</code> backend and saved to the application storage. No external JavaScript charting libraries (such as Chart.js, ApexCharts, or D3) are used.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if total_queries > 0 %}
+  <!-- 4 Primary Charts Grid -->
+  <div class="row g-4">
+    
+    <!-- Chart 1: Response Time Bar Chart -->
+    <div class="col-lg-6">
+      <div class="card card-custom h-100">
+        <div class="card-custom-header">
+          <div>
+            <span class="fw-bold text-navy"><i class="bi bi-bar-chart me-2 text-primary"></i> 1. DNS Response Times Across Queries</span>
+          </div>
+          <span class="badge bg-light text-muted border">Bar Chart</span>
+        </div>
+        <div class="card-custom-body">
+          <div class="chart-container mb-3">
+            <img src="{{ url_for('static', filename='generated/response_times_bar.png') }}?v={{ graph_version }}" alt="DNS Response Time Bar Chart" class="img-fluid" id="graphBarChart">
+          </div>
+          <p class="small text-muted mb-0">
+            Compares round-trip response latency for individual domain queries. Color coded: Cyan for Success, Blue for NODATA, Amber for NXDOMAIN, and Red for Errors/Timeouts.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: Consecutive Query Latency Trend Line -->
+    <div class="col-lg-6">
+      <div class="card card-custom h-100">
+        <div class="card-custom-header">
+          <div>
+            <span class="fw-bold text-navy"><i class="bi bi-graph-up me-2 text-primary"></i> 2. Latency Trend Over Repeated Queries</span>
+          </div>
+          <span class="badge bg-light text-muted border">Line Graph</span>
+        </div>
+        <div class="card-custom-body">
+          <div class="chart-container mb-3">
+            <img src="{{ url_for('static', filename='generated/response_times_line.png') }}?v={{ graph_version }}" alt="DNS Response Time Trend Line Graph" class="img-fluid" id="graphLineChart">
+          </div>
+          <p class="small text-muted mb-0">
+            Chronological trend line depicting latency fluctuations across consecutive queries. The dashed amber line displays the mean latency benchmark.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 3: Success vs Failure Donut Chart -->
+    <div class="col-lg-6">
+      <div class="card card-custom h-100">
+        <div class="card-custom-header">
+          <div>
+            <span class="fw-bold text-navy"><i class="bi bi-pie-chart me-2 text-primary"></i> 3. Query Success vs. Failure Rate</span>
+          </div>
+          <span class="badge bg-light text-muted border">Donut Chart</span>
+        </div>
+        <div class="card-custom-body">
+          <div class="chart-container mb-3">
+            <img src="{{ url_for('static', filename='generated/success_rate_pie.png') }}?v={{ graph_version }}" alt="DNS Success vs Failure Donut Chart" class="img-fluid" id="graphPieChart">
+          </div>
+          <p class="small text-muted mb-0">
+            Proportional distribution of successful responses versus resolution failures (NXDOMAIN, timeout, socket connection errors).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 4: Queries by Record Type -->
+    <div class="col-lg-6">
+      <div class="card card-custom h-100">
+        <div class="card-custom-header">
+          <div>
+            <span class="fw-bold text-navy"><i class="bi bi-bar-chart-steps me-2 text-primary"></i> 4. Query Volume by Record Type</span>
+          </div>
+          <span class="badge bg-light text-muted border">Category Bar</span>
+        </div>
+        <div class="card-custom-body">
+          <div class="chart-container mb-3">
+            <img src="{{ url_for('static', filename='generated/record_distribution_bar.png') }}?v={{ graph_version }}" alt="DNS Record Type Distribution Chart" class="img-fluid" id="graphDistChart">
+          </div>
+          <p class="small text-muted mb-0">
+            Aggregate frequency counts of queries grouped by DNS record types: Host IPv4 (A), Host IPv6 (AAAA), Alias (CNAME), and Mail Exchange (MX).
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+{% else %}
+  <!-- Empty State -->
+  <div class="card card-custom">
+    <div class="card-custom-body">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="bi bi-bar-chart-line"></i>
+        </div>
+        <div class="empty-state-title">No Telemetry Available to Render Graphs</div>
+        <div class="empty-state-desc">
+          Charts are generated dynamically from real query results stored in the SQLite database. Once you perform queries, Matplotlib will render statistical visualizations here.
+        </div>
+        <a href="{{ url_for('dns_query', domain='google.com') }}" class="btn btn-primary-custom">
+          <i class="bi bi-search me-1"></i> Run Sample Query (google.com)
+        </a>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Uploads and temporary test captures (keep sample capture and gitkeep)
+uploads/*
+!uploads/.gitkeep
+!uploads/sample_dns_capture.pcap
+
+# Application instance files
+instance/*.db
+instance/*.db-journal
+!instance/.gitkeep
+
+# VS Code and IDE settings
+.vscode/
+.idea/
+
+# OS specific files
+Thumbs.db
+.DS_Store

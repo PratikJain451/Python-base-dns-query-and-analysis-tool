@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+  <div>
+    <h2 class="h4 fw-bold text-navy mb-1"><i class="bi bi-ethernet text-primary me-2"></i> Wireshark DNS Packet Capture &amp; Scapy Analysis</h2>
+    <p class="text-muted small mb-0">Upload PCAP/PCAPNG network packet captures or inspect live DNS headers, transaction IDs, opcodes, and responses.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('download_sample_pcap') }}" class="btn btn-sm btn-outline-primary" id="downloadSamplePcapBtn">
+      <i class="bi bi-download me-1"></i> Download Sample PCAP Capture
+    </a>
+  </div>
+</div>
+
+<!-- Upload & Test Card -->
+<div class="row g-4 mb-4">
+  
+  <!-- Upload Form Column -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-custom-header">
+        <span><i class="bi bi-upload me-2 text-primary"></i> Upload PCAP Capture File</span>
+        <span class="badge bg-light text-muted border">Max 16 MB &bull; .pcap / .pcapng</span>
+      </div>
+      <div class="card-custom-body">
+        <form action="{{ url_for('wireshark') }}" method="POST" enctype="multipart/form-data" id="pcapUploadForm">
+          
+          <div class="mb-3">
+            <label for="pcapFileInput" class="form-label fw-bold">Select Capture File (.pcap / .pcapng)</label>
+            <input class="form-control form-control-custom" type="file" id="pcapFileInput" name="pcap_file" accept=".pcap,.pcapng,.cap" required>
+            <div class="form-text">
+              Save your Wireshark capture via <strong>File &rarr; Save As</strong> and choose standard <code>Wireshark/tcpdump (...pcap)</code> or <code>.pcapng</code>.
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between">
+            <button type="submit" class="btn btn-primary-custom" id="analyzePcapBtn">
+              <i class="bi bi-cpu me-1"></i> Analyze Packets with Python
+            </button>
+            <span class="small text-muted">
+              Don't have Wireshark? <a href="{{ url_for('download_sample_pcap') }}">Get demo file</a>
+            </span>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wireshark Step-by-Step Instructions -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-custom-header">
+        <span><i class="bi bi-journal-code me-2 text-primary"></i> How to Capture DNS Packets in Wireshark</span>
+      </div>
+      <div class="card-custom-body small text-muted">
+        <ol class="ps-3 mb-0">
+          <li class="mb-1"><strong>Open Wireshark</strong> on Windows and select your active network interface (e.g. <em>Wi-Fi</em> or <em>Ethernet</em>).</li>
+          <li class="mb-1">Double click the interface to begin live packet capture.</li>
+          <li class="mb-1">Generate DNS traffic by querying domains in this web tool, or run in PowerShell: <br><code>nslookup google.com 8.8.8.8</code></li>
+          <li class="mb-1">Type <code>dns</code> in Wireshark's top display filter bar to isolate DNS queries and responses.</li>
+          <li>Stop capture (<kbd class="bg-danger text-white">Ctrl + E</kbd>) and save via <strong>File &rarr; Save As</strong> as <code>.pcap</code>.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Wireshark Display Filter Cheatsheet -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-header">
+    <span><i class="bi bi-funnel me-2 text-primary"></i> Recommended Wireshark Display Filters</span>
+    <span class="badge bg-light text-muted border">Copy &amp; Paste into Wireshark</span>
+  </div>
+  <div class="card-custom-body">
+    <div class="row g-3">
+      
+      <div class="col-md-4">
+        <div class="filter-box">
+          <code>dns</code>
+          <span class="badge bg-primary">All DNS</span>
+        </div>
+        <div class="small text-muted mt-1">Filters all DNS traffic on UDP/TCP port 53.</div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="filter-box">
+          <code>dns.flags.response == 0</code>
+          <span class="badge bg-info text-dark">Queries Only</span>
+        </div>
+        <div class="small text-muted mt-1">Shows only outgoing DNS query packets from clients.</div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="filter-box">
+          <code>dns.flags.response == 1</code>
+          <span class="badge bg-success">Responses Only</span>
+        </div>
+        <div class="small text-muted mt-1">Shows only incoming DNS responses from nameservers.</div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="filter-box">
+          <code>dns.qry.type == 1</code>
+          <span class="badge bg-secondary">A Records</span>
+        </div>
+        <div class="small text-muted mt-1">Filters queries for Host IPv4 Address (Type 1).</div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="filter-box">
+          <code>dns.flags.rcode != 0</code>
+          <span class="badge bg-danger">Errors / NXDOMAIN</span>
+        </div>
+        <div class="small text-muted mt-1">Isolates DNS response errors, NXDOMAIN, and SERVFAIL.</div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="filter-box">
+          <code>dns.qry.name contains "google"</code>
+          <span class="badge bg-warning text-dark">Domain Filter</span>
+        </div>
+        <div class="small text-muted mt-1">Matches any query containing the specified domain name.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Uploaded Capture Analysis Results (if present) -->
+{% if analysis %}
+  <div class="card card-custom mb-4">
+    <div class="card-custom-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-file-earmark-check text-success"></i>
+        <span>Capture File Telemetry Overview</span>
+      </div>
+      <span class="badge bg-success">{{ analysis.total_dns_packets }} DNS Packets Found</span>
+    </div>
+    
+    <div class="card-custom-body">
+      <!-- Mini stats row -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-3">
+          <div class="p-3 border rounded bg-light text-center">
+            <div class="fs-4 fw-bold text-navy">{{ analysis.total_packets_scanned }}</div>
+            <div class="small text-muted text-uppercase">Total Packets Scanned</div>
+          </div>
+        </div>
+        <div class="col-sm-3">
+          <div class="p-3 border rounded bg-light text-center">
+            <div class="fs-4 fw-bold text-primary">{{ analysis.total_dns_packets }}</div>
+            <div class="small text-muted text-uppercase">DNS Messages</div>
+          </div>
+        </div>
+        <div class="col-sm-3">
+          <div class="p-3 border rounded bg-light text-center">
+            <div class="fs-4 fw-bold text-info">{{ analysis.query_count }}</div>
+            <div class="small text-muted text-uppercase">Queries (QR=0)</div>
+          </div>
+        </div>
+        <div class="col-sm-3">
+          <div class="p-3 border rounded bg-light text-center">
+            <div class="fs-4 fw-bold text-success">{{ analysis.response_count }}</div>
+            <div class="small text-muted text-uppercase">Responses (QR=1)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Packet Breakdown Table -->
+      <h6 class="fw-bold text-navy mb-3"><i class="bi bi-list-columns me-2"></i> Packet-by-Packet Dissection Table</h6>
+      
+      <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0" id="packetDissectionTable">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Time</th>
+              <th scope="col">Source IP:Port</th>
+              <th scope="col">Destination IP:Port</th>
+              <th scope="col">Tx ID</th>
+              <th scope="col">Type</th>
+              <th scope="col">Query Name</th>
+              <th scope="col">QType</th>
+              <th scope="col">RCODE</th>
+              <th scope="col">Answers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in analysis.dns_records %}
+              <tr>
+                <td class="text-muted small">{{ p.packet_number }}</td>
+                <td class="font-monospace small">{{ p.timestamp }}</td>
+                <td class="font-monospace small">{{ p.src_ip }}:{{ p.src_port }}</td>
+                <td class="font-monospace small">{{ p.dst_ip }}:{{ p.dst_port }}</td>
+                <td>
+                  <span class="badge bg-light text-dark border font-monospace">{{ p.transaction_id_hex }}</span>
+                </td>
+                <td>
+                  {% if p.status == 'Query' %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">Query</span>
+                  {% else %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Response</span>
+                  {% endif %}
+                </td>
+                <td class="fw-bold font-monospace text-navy">{{ p.qname }}</td>
+                <td><span class="badge-record-type">{{ p.qtype }}</span></td>
+                <td>
+                  {% if p.rcode == 0 %}
+                    <span class="badge-status badge-status-success">{{ p.rcode_str }}</span>
+                  {% elif p.rcode == 3 %}
+                    <span class="badge-status badge-status-nxdomain">{{ p.rcode_str }}</span>
+                  {% else %}
+                    <span class="badge-status badge-status-error">{{ p.rcode_str }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if p.answers %}
+                    <ul class="list-unstyled mb-0 font-monospace small">
+                      {% for ans in p.answers %}
+                        <li>&bull; {{ ans.type }}: {{ ans.data }} <span class="text-muted small">(TTL: {{ ans.ttl }}s)</span></li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <span class="text-muted small">&mdash;</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+{% endif %}
+
+<!-- Encrypted DNS Technical Note -->
+<div class="card card-custom">
+  <div class="card-custom-header">
+    <span><i class="bi bi-shield-lock me-2 text-warning"></i> Cybersecurity Note: Encrypted DNS (DoH &amp; DoT)</span>
+  </div>
+  <div class="card-custom-body small text-muted">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <h6 class="fw-bold text-navy mb-1"><i class="bi bi-lock-fill text-primary me-1"></i> DNS-over-HTTPS (DoH, RFC 8484)</h6>
+        <p class="mb-0">
+          Encapsulates DNS queries inside standard HTTPS sessions over TCP port <strong>443</strong> using TLS encryption. Because traffic blends indistinguishably with web browsing, network firewalls and Wireshark cannot inspect query hostnames or response IPs without TLS session keys.
+        </p>
+      </div>
+      <div class="col-md-6">
+        <h6 class="fw-bold text-navy mb-1"><i class="bi bi-shield-shaded text-info me-1"></i> DNS-over-TLS (DoT, RFC 7858)</h6>
+        <p class="mb-0">
+          Wraps raw DNS datagrams directly within Transport Layer Security over a dedicated port (TCP <strong>853</strong>). While port 853 signals that DNS is occurring, the query payload, transaction ID, and answers remain cryptographically opaque to eavesdroppers.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

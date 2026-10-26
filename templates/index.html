@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-banner">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-info text-dark fw-bold px-2 py-1"><i class="bi bi-cpu"></i> Python Flask Application</span>
+        <span class="badge bg-secondary px-2 py-1">RFC 1035 / RFC 1123 Compliant</span>
+      </div>
+      <h1 class="display-6 fw-bold text-white mb-2">DNS Query and Analysis Tool</h1>
+      <p class="lead mb-3">
+        Comprehensive platform for resolving domain names into IPv4/IPv6 addresses, analyzing DNS record sets (A, AAAA, CNAME, MX), measuring query latency with microsecond precision, comparing domain performance, and inspecting Wireshark packet captures.
+      </p>
+    </div>
+    <div class="col-lg-4 text-lg-end d-none d-lg-block">
+      <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25 d-inline-block text-start">
+        <div class="small text-uppercase text-info fw-bold mb-1"><i class="bi bi-activity"></i> Active DNS Engines</div>
+        <div class="small text-white">&bull; dnspython Resolver (Port 53)</div>
+        <div class="small text-white">&bull; Matplotlib Backend Rendering</div>
+        <div class="small text-white">&bull; Scapy / PCAP Stream Parser</div>
+        <div class="small text-white">&bull; SQLite Transactional Store</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Domain Query Card -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-header">
+    <span><i class="bi bi-search me-2 text-primary"></i> Quick Domain Lookup</span>
+    <span class="badge bg-light text-dark border">Standard Port 53</span>
+  </div>
+  <div class="card-custom-body">
+    <form action="{{ url_for('dns_query') }}" method="POST" class="row g-3">
+      <div class="col-md-7 col-lg-8">
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-globe2"></i></span>
+          <input type="text" name="domain" class="form-control form-control-custom border-start-0" placeholder="Enter domain name (e.g. google.com, github.com)..." required id="quickDomainInput">
+        </div>
+        <div class="mt-2">
+          <span class="text-muted small me-2">Quick Examples:</span>
+          <a href="{{ url_for('dns_query', domain='google.com') }}" class="example-pill">google.com</a>
+          <a href="{{ url_for('dns_query', domain='github.com') }}" class="example-pill">github.com</a>
+          <a href="{{ url_for('dns_query', domain='wikipedia.org') }}" class="example-pill">wikipedia.org</a>
+          <a href="{{ url_for('dns_query', domain='cloudflare.com') }}" class="example-pill">cloudflare.com</a>
+        </div>
+      </div>
+
+      <div class="col-md-5 col-lg-4 d-flex align-items-start gap-2">
+        <input type="hidden" name="record_types" value="A">
+        <input type="hidden" name="record_types" value="AAAA">
+        <input type="hidden" name="record_types" value="CNAME">
+        <input type="hidden" name="record_types" value="MX">
+        <button type="submit" class="btn btn-primary-custom flex-grow-1" id="quickQueryBtn">
+          <i class="bi bi-play-fill me-1"></i> Resolve All Records
+        </button>
+        <a href="{{ url_for('dns_query') }}" class="btn btn-outline-secondary" title="Advanced Options">
+          <i class="bi bi-sliders"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+  <!-- Metric 1: Total Queries -->
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="bi bi-database-check"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value" id="statTotalQueries">{{ stats.total_queries }}</div>
+        <div class="stat-label">Total Queries</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric 2: Successful Queries -->
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-success">
+      <div class="stat-icon text-success">
+        <i class="bi bi-check2-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value text-success" id="statSuccessfulQueries">{{ stats.successful_queries }}</div>
+        <div class="stat-label">Successful</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric 3: Failed Queries -->
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-danger">
+      <div class="stat-icon text-danger">
+        <i class="bi bi-x-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value text-danger" id="statFailedQueries">{{ stats.failed_queries }}</div>
+        <div class="stat-label">Failed / Errors</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric 4: Average Response Time -->
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-cyan">
+      <div class="stat-icon text-info">
+        <i class="bi bi-stopwatch"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value" id="statAvgResponseTime">{{ stats.avg_response_time }} <span class="fs-6 text-muted">ms</span></div>
+        <div class="stat-label">Avg Response Time</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Dashboard Grid: Graphs and Recent History -->
+<div class="row g-4 mb-4">
+  <!-- Left Column: Generated Matplotlib Graphs -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-custom-header">
+        <span><i class="bi bi-graph-up me-2 text-primary"></i> Response Time Comparison</span>
+        <a href="{{ url_for('graphs') }}" class="btn btn-sm btn-link text-decoration-none">Full Analytics &rarr;</a>
+      </div>
+      <div class="card-custom-body">
+        <div class="chart-container">
+          <img src="{{ url_for('static', filename='generated/response_times_bar.png') }}?v={{ graph_version }}" alt="Response Time Comparison Bar Chart" class="img-fluid" id="dashboardBarChart">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Record Distribution Graph -->
+  <div class="col-lg-6">
+    <div class="card card-custom h-100">
+      <div class="card-custom-header">
+        <span><i class="bi bi-pie-chart me-2 text-primary"></i> DNS Records by Type</span>
+        <span class="badge bg-light text-secondary border">A &bull; AAAA &bull; CNAME &bull; MX</span>
+      </div>
+      <div class="card-custom-body">
+        <div class="chart-container">
+          <img src="{{ url_for('static', filename='generated/record_distribution_bar.png') }}?v={{ graph_version }}" alt="DNS Record Distribution Chart" class="img-fluid" id="dashboardDistChart">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Latest DNS Query History Table -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-clock-history text-primary"></i>
+      <span>Latest DNS Query History</span>
+      <span class="badge bg-primary-subtle text-primary border ms-2">Real-Time SQLite Logs</span>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-primary" id="viewFullHistoryBtn">
+        <i class="bi bi-list-ul me-1"></i> View All History
+      </a>
+    </div>
+  </div>
+
+  <div class="card-custom-body p-0">
+    {% if recent_queries %}
+      <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0" id="recentQueriesTable">
+          <thead>
+            <tr>
+              <th scope="col">Domain</th>
+              <th scope="col">Type</th>
+              <th scope="col">Answer(s)</th>
+              <th scope="col">Latency</th>
+              <th scope="col">Status</th>
+              <th scope="col">Resolver</th>
+              <th scope="col">Timestamp</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for q in recent_queries %}
+              <tr>
+                <td class="fw-bold text-navy">
+                  <a href="{{ url_for('query_details', query_id=q.id) }}" class="text-decoration-none text-dark">
+                    {{ q.domain }}
+                  </a>
+                </td>
+                <td>
+                  <span class="badge-record-type">{{ q.record_type }}</span>
+                </td>
+                <td>
+                  <span class="font-monospace small text-truncate d-inline-block" style="max-width: 260px;" title="{{ q.answers }}">
+                    {{ q.answers if q.answers else (q.error_message if q.error_message else "No answer") }}
+                  </span>
+                </td>
+                <td>
+                  <span class="fw-semibold">{{ q.response_time_ms }} ms</span>
+                </td>
+                <td>
+                  {% if q.status == 'SUCCESS' %}
+                    <span class="badge-status badge-status-success"><i class="bi bi-check-circle-fill"></i> Success</span>
+                  {% elif q.status == 'NO_ANSWER' %}
+                    <span class="badge-status badge-status-noanswer"><i class="bi bi-info-circle-fill"></i> No Records</span>
+                  {% elif q.status == 'NXDOMAIN' %}
+                    <span class="badge-status badge-status-nxdomain"><i class="bi bi-question-circle-fill"></i> NXDOMAIN</span>
+                  {% elif q.status == 'TIMEOUT' %}
+                    <span class="badge-status badge-status-timeout"><i class="bi bi-hourglass-bottom"></i> Timeout</span>
+                  {% else %}
+                    <span class="badge-status badge-status-error"><i class="bi bi-exclamation-triangle-fill"></i> Error</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="text-muted small">{{ q.resolver }}</span>
+                </td>
+                <td>
+                  <span class="text-muted small">{{ q.created_at }}</span>
+                </td>
+                <td class="text-end">
+                  <a href="{{ url_for('query_details', query_id=q.id) }}" class="btn btn-sm btn-outline-secondary" title="View Technical Details">
+                    <i class="bi bi-eye"></i> Details
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon text-muted">
+          <i class="bi bi-inbox"></i>
+        </div>
+        <div class="empty-state-title">No DNS Queries Executed Yet</div>
+        <div class="empty-state-desc">
+          Enter a domain name above or choose one of the quick examples to perform your first query and record metrics.
+        </div>
+        <a href="{{ url_for('dns_query', domain='google.com') }}" class="btn btn-primary-custom" id="startFirstQueryBtn">
+          <i class="bi bi-search me-1"></i> Query google.com Now
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

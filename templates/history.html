@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
+  <div>
+    <h2 class="h4 fw-bold text-navy mb-1"><i class="bi bi-clock-history text-primary me-2"></i> DNS Query History</h2>
+    <p class="text-muted small mb-0">Search, filter, and review all DNS queries stored locally in the SQLite database.</p>
+  </div>
+
+  <!-- Quick Action Buttons -->
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('export_csv') }}" class="btn btn-sm btn-outline-success" id="historyExportCsvBtn">
+      <i class="bi bi-filetype-csv me-1"></i> Export CSV
+    </a>
+    <a href="{{ url_for('export_json') }}" class="btn btn-sm btn-outline-primary" id="historyExportJsonBtn">
+      <i class="bi bi-filetype-json me-1"></i> Export JSON
+    </a>
+    <!-- Clear History Modal Trigger -->
+    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#clearHistoryModal" id="clearHistoryBtn">
+      <i class="bi bi-trash3 me-1"></i> Clear History
+    </button>
+  </div>
+</div>
+
+<!-- Search & Filter Card -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-body py-3">
+    <form method="GET" action="{{ url_for('history') }}" class="row g-2 align-items-end" id="historyFilterForm">
+      
+      <!-- Search Input -->
+      <div class="col-md-4">
+        <label for="searchQuery" class="form-label small fw-bold text-muted mb-1">Search Domain or IP</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control form-control-custom border-start-0" id="searchQuery" name="q" value="{{ search_query }}" placeholder="Filter by domain or answers...">
+        </div>
+      </div>
+
+      <!-- Record Type Filter -->
+      <div class="col-6 col-md-2">
+        <label for="typeFilter" class="form-label small fw-bold text-muted mb-1">Record Type</label>
+        <select class="form-select form-control-custom" id="typeFilter" name="type">
+          <option value="">All Types</option>
+          <option value="A" {% if record_type == 'A' %}selected{% endif %}>A</option>
+          <option value="AAAA" {% if record_type == 'AAAA' %}selected{% endif %}>AAAA</option>
+          <option value="CNAME" {% if record_type == 'CNAME' %}selected{% endif %}>CNAME</option>
+          <option value="MX" {% if record_type == 'MX' %}selected{% endif %}>MX</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="col-6 col-md-2">
+        <label for="statusFilter" class="form-label small fw-bold text-muted mb-1">Query Status</label>
+        <select class="form-select form-control-custom" id="statusFilter" name="status">
+          <option value="">All Statuses</option>
+          <option value="SUCCESS" {% if status_filter == 'SUCCESS' %}selected{% endif %}>SUCCESS</option>
+          <option value="NO_ANSWER" {% if status_filter == 'NO_ANSWER' %}selected{% endif %}>NO_ANSWER (NODATA)</option>
+          <option value="NXDOMAIN" {% if status_filter == 'NXDOMAIN' %}selected{% endif %}>NXDOMAIN</option>
+          <option value="TIMEOUT" {% if status_filter == 'TIMEOUT' %}selected{% endif %}>TIMEOUT</option>
+          <option value="ERROR" {% if status_filter == 'ERROR' %}selected{% endif %}>ERROR</option>
+        </select>
+      </div>
+
+      <!-- Sort Filter -->
+      <div class="col-6 col-md-2">
+        <label for="sortFilter" class="form-label small fw-bold text-muted mb-1">Sort By</label>
+        <select class="form-select form-control-custom" id="sortFilter" name="sort">
+          <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
+          <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
+          <option value="time_asc" {% if sort_by == 'time_asc' %}selected{% endif %}>Fastest Latency</option>
+          <option value="time_desc" {% if sort_by == 'time_desc' %}selected{% endif %}>Slowest Latency</option>
+          <option value="domain_asc" {% if sort_by == 'domain_asc' %}selected{% endif %}>Domain (A-Z)</option>
+        </select>
+      </div>
+
+      <!-- Submit & Reset Buttons -->
+      <div class="col-6 col-md-2 d-flex gap-1">
+        <button type="submit" class="btn btn-primary-custom flex-grow-1" id="applyFiltersBtn">
+          <i class="bi bi-funnel me-1"></i> Filter
+        </button>
+        <a href="{{ url_for('history') }}" class="btn btn-outline-secondary" title="Reset Filters">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- History Records Table -->
+<div class="card card-custom mb-4">
+  <div class="card-custom-header">
+    <span><i class="bi bi-database me-2 text-primary"></i> Query Records <span class="badge bg-light text-dark border ms-1">{{ total_count }} total</span></span>
+    <span class="text-muted small">Page {{ current_page }} of {{ total_pages }}</span>
+  </div>
+
+  <div class="card-custom-body p-0">
+    {% if records %}
+      <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0" id="historyTable">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Domain</th>
+              <th scope="col">Type</th>
+              <th scope="col">Answers / Error Message</th>
+              <th scope="col">Latency</th>
+              <th scope="col">Status</th>
+              <th scope="col">Timestamp</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+              <tr>
+                <td class="text-muted small">#{{ r.id }}</td>
+                <td class="fw-bold font-monospace">
+                  <a href="{{ url_for('query_details', query_id=r.id) }}" class="text-decoration-none text-dark">
+                    {{ r.domain }}
+                  </a>
+                </td>
+                <td><span class="badge-record-type">{{ r.record_type }}</span></td>
+                <td>
+                  <span class="font-monospace small text-truncate d-inline-block" style="max-width: 320px;" title="{{ r.answers or r.error_message }}">
+                    {% if r.status == 'SUCCESS' %}
+                      {{ r.answers }}
+                    {% elif r.status == 'NO_ANSWER' %}
+                      <span class="text-muted">No records found</span>
+                    {% elif r.status == 'NXDOMAIN' %}
+                      <span class="text-danger">NXDOMAIN (Domain not found)</span>
+                    {% else %}
+                      <span class="text-danger">{{ r.error_message or "Resolution error" }}</span>
+                    {% endif %}
+                  </span>
+                </td>
+                <td><span class="fw-semibold">{{ r.response_time_ms }} ms</span></td>
+                <td>
+                  {% if r.status == 'SUCCESS' %}
+                    <span class="badge-status badge-status-success"><i class="bi bi-check-circle-fill"></i> Success</span>
+                  {% elif r.status == 'NO_ANSWER' %}
+                    <span class="badge-status badge-status-noanswer"><i class="bi bi-info-circle-fill"></i> No Records</span>
+                  {% elif r.status == 'NXDOMAIN' %}
+                    <span class="badge-status badge-status-nxdomain"><i class="bi bi-question-circle-fill"></i> NXDOMAIN</span>
+                  {% elif r.status == 'TIMEOUT' %}
+                    <span class="badge-status badge-status-timeout"><i class="bi bi-hourglass-bottom"></i> Timeout</span>
+                  {% else %}
+                    <span class="badge-status badge-status-error"><i class="bi bi-exclamation-triangle-fill"></i> Error</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted small">{{ r.created_at }}</td>
+                <td class="text-end">
+                  <a href="{{ url_for('query_details', query_id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="View Details">
+                    <i class="bi bi-eye"></i> Details
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      {% if total_pages > 1 %}
+        <div class="p-3 border-top d-flex justify-content-between align-items-center">
+          <div class="small text-muted">
+            Showing records <strong>{{ (current_page - 1) * 12 + 1 }}</strong> to <strong>{{ [current_page * 12, total_count]|min }}</strong> of <strong>{{ total_count }}</strong>
+          </div>
+          
+          <nav aria-label="History pagination">
+            <ul class="pagination pagination-sm mb-0">
+              <!-- Previous Button -->
+              <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('history', page=current_page-1, q=search_query, type=record_type, status=status_filter, sort=sort_by) }}">
+                  &laquo; Prev
+                </a>
+              </li>
+
+              <!-- Page numbers -->
+              {% for p in range([1, current_page - 2]|max, [total_pages + 1, current_page + 3]|min) %}
+                <li class="page-item {% if p == current_page %}active{% endif %}">
+                  <a class="page-link" href="{{ url_for('history', page=p, q=search_query, type=record_type, status=status_filter, sort=sort_by) }}">
+                    {{ p }}
+                  </a>
+                </li>
+              {% endfor %}
+
+              <!-- Next Button -->
+              <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('history', page=current_page+1, q=search_query, type=record_type, status=status_filter, sort=sort_by) }}">
+                  Next &raquo;
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="bi bi-search"></i>
+        </div>
+        <div class="empty-state-title">No Matching Query Records Found</div>
+        <div class="empty-state-desc">
+          {% if search_query or record_type or status_filter %}
+            No queries match your current filter parameters. Try clearing the search or changing filter criteria.
+          {% else %}
+            The SQLite query history is currently empty. Run your first DNS query to populate the database.
+          {% endif %}
+        </div>
+        {% if search_query or record_type or status_filter %}
+          <a href="{{ url_for('history') }}" class="btn btn-outline-primary">Clear Filters</a>
+        {% else %}
+          <a href="{{ url_for('dns_query') }}" class="btn btn-primary-custom">Perform DNS Query</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Clear History Confirmation Modal -->
+<div class="modal fade" id="clearHistoryModal" tabindex="-1" aria-labelledby="clearHistoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger fw-bold" id="clearHistoryModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Database Truncation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to permanently clear all DNS query history from the SQLite database?</p>
+        <p class="small text-muted mb-0">This operation cannot be undone. All recorded latency metrics, answers, and error logs will be deleted.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form action="{{ url_for('clear_history') }}" method="POST">
+          <button type="submit" class="btn btn-danger" id="confirmClearHistoryBtn">Yes, Clear All History</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

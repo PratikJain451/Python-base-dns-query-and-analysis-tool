@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    
+    <!-- Top Bar -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-secondary mb-2">
+          <i class="bi bi-arrow-left me-1"></i> Back to History
+        </a>
+        <h2 class="h4 fw-bold text-navy mb-0">Query Technical Details: <span class="text-primary font-monospace">{{ record.domain }}</span></h2>
+      </div>
+      <div>
+        <a href="{{ url_for('dns_query', domain=record.domain) }}" class="btn btn-sm btn-primary-custom">
+          <i class="bi bi-arrow-repeat me-1"></i> Re-Query Domain
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Details Card -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-info-circle me-2 text-primary"></i> Database Record #{{ record.id }}</span>
+        <span class="badge bg-light text-dark border">Batch: {{ record.batch_id }}</span>
+      </div>
+
+      <div class="card-custom-body">
+        <div class="row g-4">
+          
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="text-muted small fw-bold text-uppercase d-block">Domain Name</label>
+              <div class="fs-5 fw-bold font-monospace text-navy">{{ record.domain }}</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-muted small fw-bold text-uppercase d-block">Record Type</label>
+              <span class="badge-record-type fs-6">{{ record.record_type }}</span>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-muted small fw-bold text-uppercase d-block">Query Status</label>
+              {% if record.status == 'SUCCESS' %}
+                <span class="badge-status badge-status-success fs-6"><i class="bi bi-check-circle-fill"></i> Success</span>
+              {% elif record.status == 'NO_ANSWER' %}
+                <span class="badge-status badge-status-noanswer fs-6"><i class="bi bi-info-circle-fill"></i> No Records Found (NODATA)</span>
+              {% elif record.status == 'NXDOMAIN' %}
+                <span class="badge-status badge-status-nxdomain fs-6"><i class="bi bi-question-circle-fill"></i> Non-Existent Domain (NXDOMAIN)</span>
+              {% elif record.status == 'TIMEOUT' %}
+                <span class="badge-status badge-status-timeout fs-6"><i class="bi bi-hourglass-bottom"></i> Timeout</span>
+              {% else %}
+                <span class="badge-status badge-status-error fs-6"><i class="bi bi-exclamation-triangle-fill"></i> Error</span>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="text-muted small fw-bold text-uppercase d-block">Upstream Resolver</label>
+              <div class="fw-semibold">{{ record.resolver }}</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="text-muted small fw-bold text-uppercase d-block">Response Time / Latency</label>
+              <div class="display-6 fw-bold text-primary">{{ record.response_time_ms }} <span class="fs-5 text-muted">ms</span></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-muted small fw-bold text-uppercase d-block">Query Timestamp</label>
+              <div class="fw-semibold text-dark">{{ record.created_at }}</div>
+            </div>
+
+            {% if record.record_type == 'MX' and record.mx_priority %}
+              <div class="mb-3">
+                <label class="text-muted small fw-bold text-uppercase d-block">MX Preference / Priority</label>
+                <div class="font-monospace fw-semibold">{{ record.mx_priority }}</div>
+              </div>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <hr class="my-4">
+
+        <!-- DNS Answer Section -->
+        <div class="mb-3">
+          <label class="text-muted small fw-bold text-uppercase d-block mb-2">DNS Answer Payload</label>
+          {% if record.answers %}
+            <div class="p-3 bg-light border rounded font-monospace small">
+              {{ record.answers }}
+            </div>
+          {% else %}
+            <div class="p-3 bg-light border rounded text-muted small fst-italic">
+              No DNS answer returned in resource record section.
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Error Details (if any) -->
+        {% if record.error_message %}
+          <div class="mb-3">
+            <label class="text-danger small fw-bold text-uppercase d-block mb-2">Error Diagnostic Message</label>
+            <div class="alert alert-danger mb-0 font-monospace small">
+              {{ record.error_message }}
+            </div>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Educational Context Card -->
+    <div class="card card-custom">
+      <div class="card-custom-header">
+        <span><i class="bi bi-journal-text me-2 text-primary"></i> RFC Standard Definition: {{ record.record_type }} Record</span>
+      </div>
+      <div class="card-custom-body">
+        <p class="text-muted mb-3">{{ explanation }}</p>
+        <div class="small bg-light p-3 rounded border">
+          <div class="fw-bold text-dark mb-1">How dnspython Resolves This Query:</div>
+          <ol class="mb-0 ps-3 text-muted">
+            <li>A UDP socket is created and configured with a socket timeout (typically 3.0 seconds).</li>
+            <li>A standard DNS Question Packet (QR=0, Opcode=0, RD=1) is formatted with the domain and QTYPE code.</li>
+            <li>The packet is transmitted over port 53 to the specified nameserver (<code>{{ record.resolver }}</code>).</li>
+            <li>Python's high-resolution timer <code>time.perf_counter()</code> measures elapsed milliseconds until the complete response packet arrives.</li>
+            <li>The response records are decompressed and extracted into typed Python objects.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h2 class="h4 fw-bold text-navy mb-1"><i class="bi bi-search text-primary me-2"></i> DNS Record Query</h2>
+        <p class="text-muted small mb-0">Query standard RFC 1035 authoritative DNS records and measure round-trip resolution latency in milliseconds.</p>
+      </div>
+      <div>
+        <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-clock-history me-1"></i> View Past History
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Query Card -->
+    <div class="card card-custom mb-4">
+      <div class="card-custom-header">
+        <span><i class="bi bi-terminal me-2 text-primary"></i> Query Parameters</span>
+        <span class="badge bg-primary-subtle text-primary border">Direct Port 53 / UDP</span>
+      </div>
+      
+      <div class="card-custom-body">
+        <form action="{{ url_for('dns_query') }}" method="POST" id="dnsQueryForm">
+          
+          <!-- Domain Name Input -->
+          <div class="mb-4">
+            <label for="domainInput" class="form-label fw-bold">Domain Name <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-globe"></i></span>
+              <input type="text" class="form-control form-control-custom border-start-0" id="domainInput" name="domain" value="{{ domain | default('') }}" placeholder="e.g. google.com, github.com, wikipedia.org" required autofocus>
+            </div>
+            <div class="form-text">
+              Enter a fully qualified domain name (FQDN). Protocols (http://, https://) and trailing paths are automatically stripped.
+            </div>
+
+            <!-- Quick Example Domain Links -->
+            <div class="mt-2">
+              <span class="text-muted small me-2">Examples:</span>
+              <a href="{{ url_for('dns_query', domain='google.com') }}" class="example-pill">google.com</a>
+              <a href="{{ url_for('dns_query', domain='github.com') }}" class="example-pill">github.com</a>
+              <a href="{{ url_for('dns_query', domain='wikipedia.org') }}" class="example-pill">wikipedia.org</a>
+              <a href="{{ url_for('dns_query', domain='microsoft.com') }}" class="example-pill">microsoft.com</a>
+            </div>
+          </div>
+
+          <!-- Record Types Selection -->
+          <div class="mb-4">
+            <label class="form-label fw-bold d-block">Select Record Types to Resolve <span class="text-danger">*</span></label>
+            <div class="row g-3">
+              
+              <!-- A Record -->
+              <div class="col-sm-6 col-md-3">
+                <div class="p-3 border rounded h-100 bg-light">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="record_types" value="A" id="checkA" {% if 'A' in selected_types %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="checkA">
+                      A Record
+                    </label>
+                  </div>
+                  <div class="small text-muted mt-1">Host IPv4 32-bit address.</div>
+                </div>
+              </div>
+
+              <!-- AAAA Record -->
+              <div class="col-sm-6 col-md-3">
+                <div class="p-3 border rounded h-100 bg-light">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="record_types" value="AAAA" id="checkAAAA" {% if 'AAAA' in selected_types %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="checkAAAA">
+                      AAAA Record
+                    </label>
+                  </div>
+                  <div class="small text-muted mt-1">Host IPv6 128-bit address.</div>
+                </div>
+              </div>
+
+              <!-- CNAME Record -->
+              <div class="col-sm-6 col-md-3">
+                <div class="p-3 border rounded h-100 bg-light">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="record_types" value="CNAME" id="checkCNAME" {% if 'CNAME' in selected_types %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="checkCNAME">
+                      CNAME Record
+                    </label>
+                  </div>
+                  <div class="small text-muted mt-1">Canonical Name alias target.</div>
+                </div>
+              </div>
+
+              <!-- MX Record -->
+              <div class="col-sm-6 col-md-3">
+                <div class="p-3 border rounded h-100 bg-light">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="record_types" value="MX" id="checkMX" {% if 'MX' in selected_types %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="checkMX">
+                      MX Record
+                    </label>
+                  </div>
+                  <div class="small text-muted mt-1">Mail server host &amp; priority.</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- DNS Resolver Selection -->
+          <div class="mb-4">
+            <label for="resolverSelect" class="form-label fw-bold">Upstream DNS Resolver</label>
+            <select class="form-select form-control-custom" id="resolverSelect" name="resolver">
+              <option value="System Default" {% if resolver_choice == 'System Default' %}selected{% endif %}>Operating System Default DNS Resolver</option>
+              <option value="8.8.8.8" {% if resolver_choice == '8.8.8.8' %}selected{% endif %}>Google Public DNS (8.8.8.8)</option>
+              <option value="1.1.1.1" {% if resolver_choice == '1.1.1.1' %}selected{% endif %}>Cloudflare Fast DNS (1.1.1.1)</option>
+              <option value="9.9.9.9" {% if resolver_choice == '9.9.9.9' %}selected{% endif %}>Quad9 Secure DNS (9.9.9.9)</option>
+            </select>
+            <div class="form-text">Choose the recursive resolver that should handle this resolution request.</div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="d-flex align-items-center gap-3">
+            <button type="submit" class="btn btn-primary-custom px-4" id="submitDnsQueryBtn">
+              <i class="bi bi-send me-1"></i> Execute DNS Query
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Educational Guide Card -->
+    <div class="card card-custom">
+      <div class="card-custom-header">
+        <span><i class="bi bi-book me-2 text-primary"></i> Understanding DNS Resource Record Types</span>
+      </div>
+      <div class="card-custom-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <span class="badge bg-primary mb-2">A Record (Address)</span>
+              <p class="small text-muted mb-0">
+                Maps a domain name to a 32-bit IPv4 address (e.g., <code>142.250.190.46</code>). Used by web browsers to locate host web servers over IPv4 networks.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <span class="badge bg-info text-dark mb-2">AAAA Record (IPv6)</span>
+              <p class="small text-muted mb-0">
+                Maps a domain name to a 128-bit IPv6 address (e.g., <code>2607:f8b0:4005::200e</code>). Provides the next-generation internet protocol routing address.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <span class="badge bg-secondary mb-2">CNAME (Canonical Name)</span>
+              <p class="small text-muted mb-0">
+                Specifies that a domain is an alias for another domain name. When queried, the resolver follows the alias chain until it resolves the final canonical address.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <span class="badge bg-warning text-dark mb-2">MX Record (Mail Exchange)</span>
+              <p class="small text-muted mb-0">
+                Identifies mail servers responsible for handling email delivered to this domain. Each server is assigned a preference/priority integer, where lower values indicate higher priority.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
