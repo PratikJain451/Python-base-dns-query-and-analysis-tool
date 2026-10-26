@@ -45,6 +45,23 @@ def init_db() -> None:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_queries_status ON queries(status)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_queries_created ON queries(created_at)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_queries_batch ON queries(batch_id)")
+
+            # Seed initial telemetry data if table is completely fresh
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM queries")
+            if cur.fetchone()[0] == 0:
+                sample_queries = [
+                    ("seed001", "google.com", "A", "142.250.190.46, 142.250.190.78", None, 28.45, "SUCCESS", None, "Google DNS (8.8.8.8)"),
+                    ("seed001", "google.com", "AAAA", "2607:f8b0:4005:805::200e", None, 31.12, "SUCCESS", None, "Google DNS (8.8.8.8)"),
+                    ("seed001", "google.com", "MX", "smtp.google.com", "10", 35.80, "SUCCESS", None, "Google DNS (8.8.8.8)"),
+                    ("seed002", "cloudflare.com", "A", "104.16.132.229, 104.16.133.229", None, 18.90, "SUCCESS", None, "Cloudflare (1.1.1.1)"),
+                    ("seed002", "github.com", "A", "140.82.121.4", None, 45.20, "SUCCESS", None, "Cloudflare (1.1.1.1)"),
+                    ("seed003", "example-nxdomain-test.xyz", "A", "", None, 52.10, "NXDOMAIN", "Non-Existent Domain (NXDOMAIN)", "Quad9 (9.9.9.9)")
+                ]
+                cur.executemany("""
+                    INSERT INTO queries (batch_id, domain, record_type, answers, mx_priority, response_time_ms, status, error_message, resolver)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, sample_queries)
     finally:
         conn.close()
 
