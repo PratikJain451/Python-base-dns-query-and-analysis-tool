@@ -5,6 +5,8 @@ CSV/JSON export, PCAP file uploads, and error handlers.
 """
 
 import os
+import sys
+import socket
 import uuid
 import time
 import io
@@ -535,10 +537,30 @@ def internal_server_error(e):
     ), 500
 
 
+def get_local_ip() -> str:
+    """Detect the machine's primary local IP address on Wi-Fi or Ethernet."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
 if __name__ == "__main__":
-    print("=" * 65)
+    port = int(os.environ.get("PORT", 5000))
+    local_ip = get_local_ip()
+
+    print("=" * 68)
     print("  DNS Query and Analysis Tool - Flask Server Starting")
-    print("  Running locally at: http://127.0.0.1:5000")
+    print(f"  * Local Machine:       http://127.0.0.1:{port}")
+    if local_ip != "127.0.0.1":
+        print(f"  * Other Devices (LAN): http://{local_ip}:{port}")
     print("  Press Ctrl+C to stop the server.")
-    print("=" * 65)
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    print("=" * 68)
+
+    # host="0.0.0.0" allows connections from other devices on the same network
+    app.run(host="0.0.0.0", port=port, debug=True)
+

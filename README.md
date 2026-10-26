@@ -150,21 +150,75 @@ Run the Flask server:
 py app.py
 ```
 
-You should see console output similar to:
+You should see console output displaying both local and local network (LAN) addresses:
 ```text
-=================================================================
+====================================================================
   DNS Query and Analysis Tool - Flask Server Starting
-  Running locally at: http://127.0.0.1:5000
+  * Local Machine:       http://127.0.0.1:5000
+  * Other Devices (LAN): http://<YOUR-LOCAL-IP>:5000
   Press Ctrl+C to stop the server.
-=================================================================
+====================================================================
  * Serving Flask app 'app'
- * Debug mode: on
+ * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5000
+ * Running on http://<YOUR-LOCAL-IP>:5000
 ```
 
 ### Step 7: Open the Application in Your Browser
-Open your browser and navigate to:
-[http://127.0.0.1:5000](http://127.0.0.1:5000)
+- **On this computer**: Navigate to [http://127.0.0.1:5000](http://127.0.0.1:5000)
+- **On another device (Mobile Phone, Tablet, Laptop) on the same Wi-Fi**:  
+  Navigate to `http://<YOUR-LOCAL-IP>:5000` (printed in your terminal on startup).
+
+---
+
+## 📱 How to Open on Another Device (Phone / Second Laptop)
+
+> **Why `127.0.0.1` doesn't work on other devices:**  
+> `127.0.0.1` is the loopback address referring strictly to *the device you are typing on*. If you type `127.0.0.1:5000` on your mobile phone, the phone searches for a server running on the phone itself!
+
+To access the server from your mobile phone, tablet, or another computer on the same Wi-Fi / hotspot:
+1. Ensure both devices are connected to the same Wi-Fi network.
+2. In `app.py`, the server binds to `0.0.0.0` (all network interfaces).
+3. Check the startup message in your terminal for `* Other Devices (LAN): http://<YOUR-LOCAL-IP>:5000`.
+4. Open the mobile browser (Chrome/Safari) and type that address (e.g. `http://10.74.194.182:5000`).
+
+---
+
+## 🌍 How Other Users Can Open & Use This Project From GitHub
+
+GitHub is a code repository host and does not execute Python Flask backends by itself. Other users viewing your repository can access the project in one of the following ways:
+
+### Method 1: Deploy for FREE on Render.com (Recommended for Live Public Demo)
+To give everyone visiting your GitHub a permanent, clickable live link (e.g. `https://dns-query-analysis.onrender.com`):
+1. Sign up for free at [Render.com](https://render.com).
+2. Click **New + &rarr; Web Service**.
+3. Connect your GitHub repository: `PratikJain451/Python-base-dns-query-and-analysis-tool`.
+4. Render automatically detects the pre-configured `render.yaml` and `Procfile`.
+5. Click **Create Web Service**. Within ~2 minutes, Render will assign you a live HTTPS public link.
+6. Add that link to your GitHub repository's **"About &rarr; Website"** section so any visitor can click and test it instantly!
+
+### Method 2: Instant Public Tunnel via Built-in Windows SSH (No Installation Required)
+To temporarily share your live local server with anyone over the internet right now without deploying to the cloud:
+1. With your Flask server running in one terminal, open a second terminal.
+2. Run Windows built-in OpenSSH client command:
+   ```powershell
+   ssh -R 80:127.0.0.1:5000 nokey@localhost.run
+   ```
+3. It will instantly generate a free public HTTPS URL (e.g. `https://your-name.lhr.life`).
+4. Share that link with anyone in the world; their requests will securely tunnel to your local Flask app.
+
+### Method 3: Clone & Run Locally (Standard for Developers)
+Any developer can run this on their own computer in 4 steps:
+```bash
+git clone https://github.com/PratikJain451/Python-base-dns-query-and-analysis-tool.git
+cd Python-base-dns-query-and-analysis-tool
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
+Then they visit `http://127.0.0.1:5000` in their own browser.
+
 
 ---
 

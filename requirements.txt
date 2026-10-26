@@ -2,3 +2,4 @@ Flask>=3.0.0
 dnspython>=2.6.0
 matplotlib>=3.8.0
 scapy>=2.5.0
+gunicorn>=21.2.0
